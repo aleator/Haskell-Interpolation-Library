@@ -1,4 +1,4 @@
-{-# LANGUAGE QuasiQuotes,TemplateHaskell,DeriveDataTypeable,PatternGuards #-}
+{-# LANGUAGE CPP,QuasiQuotes,TemplateHaskell,DeriveDataTypeable,PatternGuards #-}
 module Data.String.Interpolation(str,endline,tab) where
 import Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
@@ -22,7 +22,7 @@ quoteExprExp :: String -> TH.ExpQ
 --   Repetitive patterns can be made with # symbol: 
 --
 --  @
---  \#\<var\> in \<list\>: \<interpolated string\> (|\<interpolated string\>)\#
+--  \#\<pattern\> in \<list\>: \<interpolated string\> (|\<interpolated string\>)\#
 --  @
 --   
 --   Where (|\<interpolated string\>) denotes optional separator for the 
@@ -67,13 +67,15 @@ quoteExprExp :: String -> TH.ExpQ
 --   
 --   e
 --   @
-
+#if __GLASGOW_HASKELL__ >= 701
+#else
 str  :: QuasiQuoter
-str  =  QuasiQuoter quoteExprExp undefined
+str  =  QuasiQuoter quoteExprExp undefined undefined undefined 
 
 debugStr :: QuasiQuoter 
-debugStr = QuasiQuoter (stringE) undefined
+debugStr = QuasiQuoter (stringE) undefined undefined undefined 
 
+#endif
 -- ** Predefined strings
 
 -- | End of the line  
