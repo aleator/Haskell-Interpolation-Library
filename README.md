@@ -1,3 +1,6 @@
+Multiline strings and interpolation
+-----------------------------------
+
 Quasiquote 'str' implements multiline strings with interpolation.
 Interpolating a value into the string is done by 
 $<String expression>$
@@ -49,6 +52,9 @@ As an example, let's plot set of vectors with gnuplot:
      
      e
 
- Change log
- 0.2.5.2 - Possibly now compiles with GHC 6.12
+Change log
+----------
+
+ * 0.2.5.1 - Compiles with GHC 7.0.1
+ * 0.2.5.2 - Compiles with GHC 6.12
 
