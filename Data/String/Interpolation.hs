@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP,QuasiQuotes,TemplateHaskell,DeriveDataTypeable,PatternGuards #-}
+{-# OPTIONS_GHC -fno-warn-missing-fields #-} 
 module Data.String.Interpolation(str,endline,tab) where
 import Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
