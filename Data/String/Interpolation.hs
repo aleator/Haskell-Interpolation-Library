@@ -67,15 +67,12 @@ quoteExprExp :: String -> TH.ExpQ
 --   
 --   e
 --   @
-#if __GLASGOW_HASKELL__ >= 701
-#else
+--
+--   Change log
+--   0.2.5.2 - Possibly now compiles with GHC 6.12
+
 str  :: QuasiQuoter
-str  =  QuasiQuoter quoteExprExp undefined undefined undefined 
-
-debugStr :: QuasiQuoter 
-debugStr = QuasiQuoter (stringE) undefined undefined undefined 
-
-#endif
+str  = QuasiQuoter {quoteExp = quoteExprExp}
 -- ** Predefined strings
 
 -- | End of the line  
