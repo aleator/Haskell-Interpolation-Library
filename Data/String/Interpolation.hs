@@ -1,13 +1,30 @@
 {-# LANGUAGE CPP,QuasiQuotes,TemplateHaskell,DeriveDataTypeable,PatternGuards #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-} 
-module Data.String.Interpolation(str,endline,tab) where
+
+-- | This module defines a quasiquoter for interpolated strings. For example:
+--
+--  @
+--  import qualified Data.Text.Lazy as LT
+--  let fb x | x \`mod\` 15 == 0 = \"FizzBuzz\" 
+--           | x \`mod\` 5 == 0 = \"Buzz\" 
+--           | x \`mod\` 3 == 0 = \"Fizz\" 
+--           | otherwise = LT.pack (show x)
+-- @
+--
+-- >>> LT.take 85 [str|#x in [1..]:$fb x$|, #|] <> ".. "
+-- "1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz, 16, 17, Fizz.. "
+--  
+--
+module Data.String.Interpolation(str,prnt,endline,tab) where
 import Language.Haskell.TH as TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.Meta
 import Data.Data
 import Data.Maybe
+import Data.Monoid
 import Data.Char
-import Data.List(intercalate)
+import Data.String
+-- import Data.List(intercalate)
 
 
 
@@ -69,31 +86,38 @@ quoteExprExp :: String -> TH.ExpQ
 --   e
 --   @
 --
---   Change log
---   0.2.5.2 - Possibly now compiles with GHC 6.12
 
+-- | Quasiquoter for interpolating strings. Produces values of `(Monoid m, IsString m) => m`
 str  :: QuasiQuoter
 str  = QuasiQuoter {quoteExp = quoteExprExp}
+
+-- | Quasiquoter for printing an interpolated String
+prnt  :: QuasiQuoter
+prnt  = QuasiQuoter {quoteExp = quoteExprPExp}
 -- ** Predefined strings
 
 -- | End of the line  
-endline :: String
-endline = "\n"
+endline :: IsString a => a
+endline = fromString "\n"
 
 -- | Tab
-tab :: String
-tab = "\t"
+tab :: IsString a => a
+tab = fromString "\t"
 
 
 --
 quoteExprExp s = psToStringE (parParse $ norming s)
+
+quoteExprPExp :: String -> ExpQ
+quoteExprPExp = TH.appE [|putStr|] . quoteExprExp  
+
 --
 
 psToStringE :: PieceString -> TH.Q TH.Exp
-psToStringE [] = TH.stringE ""
-psToStringE (x:xs) = TH.infixE (Just $ sbitToExp x)
-                               ([| (++) |])
-                               (Just $ psToStringE xs)
+psToStringE [] = [|mempty|] --TH.stringE ""
+psToStringE (x:xs) =  ([| mappend |]) `TH.appE`
+                      (sbitToExp x)   `TH.appE`   
+                      (psToStringE xs)
 
 runEither :: (Monad m) => [Char] -> Either [Char] t -> m t
 runEither _ (Right x) = return x
@@ -101,10 +125,11 @@ runEither s (Left e)  = error $ s ++" : "++ e
 
 appM :: (Monad m) => String -> m Exp
 appM expr = runEither ("Parse error in antiquote <"++expr++">") (parseExp expr)
+
 sbitToExp :: StringBits -> ExpQ
-sbitToExp (Str x) =  TH.stringE x 
-sbitToExp (Var x)  =  appM x --(TH.varE (TH.mkName x))
-sbitToExp (SVar x) = TH.appE (TH.varE (TH.mkName "show"))
+sbitToExp (Str x) =  [| fromString |] `appE` TH.stringE x 
+sbitToExp (Var x)  =  appM x 
+sbitToExp (SVar x) = TH.appE  [| fromString . show |]--(TH.varE (TH.mkName "show"))
                         (sbitToExp (Var x))
 
 sbitToExp (RepVar varName lstName rep sep) 
@@ -189,7 +214,7 @@ escapingBreak s e st = eBreak [] st
 -- Normalize the indentation to match second line
 
 norming :: String -> String
-norming = intercalate "\n" . norming' . lines
+norming = intercalate "\n" . norming' . lines . dropWhile isSpace
 
 norming':: [String] -> [String]
 norming' [] = []
@@ -203,4 +228,20 @@ norming' (l:lst) = l:map (drop (n)) lst
 minimumD :: (Ord a) => a -> [a] -> a
 minimumD d [] = d
 minimumD _ x  = minimum x
+
+
+-- Re-implementation of intercalate and intersperse using monoid instead of lists
+
+intersperse             :: a -> [a] -> [a]
+intersperse _   []      = []
+intersperse sep (x:xs)  = x : prependToAll sep xs
+
+
+prependToAll            :: a -> [a] -> [a]
+prependToAll _   []     = []
+prependToAll sep (x:xs) = sep : x : prependToAll sep xs
+
+intercalate :: Monoid a => a -> [a] -> a
+intercalate xs xss = mconcat (intersperse xs xss)
+
 
