@@ -16,7 +16,7 @@ Description:         This package adds quasiquoter for multiline
                      0.2.5.1 - version bump for ghc-7.0.1
 Category:            Data,Text
 Synopsis:            Multiline strings, interpolation and templating.
-License:             OtherLicense
+License:             MIT
 License-file:        LICENSE
 Author:              Ville Tirronen
 Maintainer:          aleator@gmail.com
